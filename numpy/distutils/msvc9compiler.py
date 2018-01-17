@@ -3,23 +3,21 @@ from __future__ import division, absolute_import, print_function
 import os
 from distutils.msvc9compiler import MSVCCompiler as _MSVCCompiler
 
-from .system_info import platform_bits
-
 
 def _merge(old, new):
     """Concatenate two environment paths avoiding repeats.
 
     Here `old` is the environment string before the base class initialize
     function is called and `new` is the string after the call. The new string
-    will be a fixed string if it is not obtained from the current environment,
-    or the same as the old string if obtained from the same environment. The aim
+    will be a fixed string if it is not obtained from the current enviroment,
+    or the same as the old string if obtained from the same enviroment. The aim
     here is not to append the new string if it is already contained in the old
     string so as to limit the growth of the environment string.
 
     Parameters
     ----------
     old : string
-        Previous environment string.
+        Previous enviroment string.
     new : string
         New environment string.
 
@@ -29,10 +27,10 @@ def _merge(old, new):
         Updated environment string.
 
     """
-    if not old:
-        return new
     if new in old:
         return old
+    if not old:
+        return new
 
     # Neither new nor old is empty. Give old priority.
     return ';'.join([old, new])

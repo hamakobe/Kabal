@@ -166,7 +166,7 @@ class PackageLoader(object):
         # 2014-10-29, 1.10
         warnings.warn('pkgload and PackageLoader are obsolete '
                 'and will be removed in a future version of numpy',
-                DeprecationWarning, stacklevel=2)
+                DeprecationWarning)
         frame = self.parent_frame
         self.info_modules = {}
         if options.get('force', False):
@@ -303,7 +303,8 @@ class PackageLoader(object):
                     lines.append(line)
                     line = tab
                 line += ' ' + word
-            lines.append(line)
+            else:
+                lines.append(line)
         return '\n'.join(lines)
 
     def get_pkgdocs(self):

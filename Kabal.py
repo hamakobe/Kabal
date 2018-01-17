@@ -15,6 +15,7 @@ if platform.architecture()[0] == "64bit":
     dlls=os.path.dirname(__file__)+'/DLLs'
 else:
     sysdir=os.path.dirname(__file__)+'/shared_memory/stdlib'
+    dlls=os.path.dirname(__file__)+'/32DLLs'
 sys.path.insert(0, sysdir)
 os.environ['PATH'] = os.environ['PATH'] + ";."
 sys.path.insert(0, sysdirq)
@@ -28,7 +29,7 @@ os.environ['PATH'] = os.environ['PATH'] + ";."
 from shared_memory.sim_info import *
 try:
     from qpython import *
-    #q = qconnection.QConnection(host = 'localhost', port = 5000, username = '', password = '', timeout = 3.0)
+    q = qconnection.QConnection(host = 'localhost', port = 5000, username = '', password = '', timeout = 3.0)
 except ImportError as e:
    ac.log("imported error: %s" % e)
 
@@ -46,11 +47,12 @@ tspeed_session = 0
 l_tspeed_session = 0
 l_tspeed_llap = 0
 l_tspeed_clap = 0
+l_q = 0
 
 
 #Main Assetto Corsa function, builds the App Window and the labels associated with it
 def acMain(ac_version):
-    global l_lapcount, l_speed, appWindow, l_tspeed_session, l_tspeed_llap, l_tspeed_clap, tick
+    global l_lapcount, l_speed, appWindow, l_tspeed_session, l_tspeed_llap, l_tspeed_clap, tick, l_q, q
     
     tick=ticker() #set the global variable to be a ticker, see the class below
     appWindow = ac.newApp("Kabal")
@@ -59,6 +61,8 @@ def acMain(ac_version):
     l_tspeed_session = ac.addLabel(appWindow, "Session Top Speed: {}".format(0));
     l_tspeed_llap = ac.addLabel(appWindow, "Last Lap Top Speed: {}".format(0));
     l_tspeed_clap = ac.addLabel(appWindow, "Current Lap Top Speed: {}".format(0));
+    q.open();
+    l_q = ac.addLabel(appWindow, "Q test, 4 + 4 = ? {} !".format(q('4+4'))); #Testing kdb access
     ac.setSize(appWindow, 250, 200)
 
     ac.setPosition(l_lapcount, 3, 30)
@@ -66,6 +70,8 @@ def acMain(ac_version):
     ac.setPosition(l_tspeed_session, 3, 80)
     ac.setPosition(l_tspeed_llap, 3, 100)
     ac.setPosition(l_tspeed_clap, 3, 120)
+    ac.setPosition(l_q, 3, 140)
+    q.close();
     return "Kabal"
     
 #Main update function for Assetto Corsa, it runs the enclosed code every DeltaT - I think DeltaT = 1/60 of a second

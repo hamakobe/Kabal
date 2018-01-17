@@ -42,12 +42,12 @@ class MSVCCompiler(_MSVCCompiler):
     def __init__(self, verbose=0, dry_run=0, force=0):
         _MSVCCompiler.__init__(self, verbose, dry_run, force)
 
-    def initialize(self):
+    def initialize(self, plat_name=None):
         # The 'lib' and 'include' variables may be overwritten
         # by MSVCCompiler.initialize, so save them for later merge.
         environ_lib = os.getenv('lib', '')
         environ_include = os.getenv('include', '')
-        _MSVCCompiler.initialize(self)
+        _MSVCCompiler.initialize(self, plat_name)
 
         # Merge current and previous values of 'lib' and 'include'
         os.environ['lib'] = _merge(environ_lib, os.environ['lib'])
