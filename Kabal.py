@@ -29,7 +29,7 @@ os.environ['PATH'] = os.environ['PATH'] + ";."
 from shared_memory.sim_info import *
 try:
     from qpython import *
-    q = qconnection.QConnection(host = 'localhost', port = 5000, username = '', password = '', timeout = 3.0)
+    q = qconnection.QConnection(host = '35.229.70.14', port = 5432, username = 'admin', password = 'It\'s a vibe', timeout = 3.0)
 except ImportError as e:
    ac.log("imported error: %s" % e)
 
