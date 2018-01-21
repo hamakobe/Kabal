@@ -49,20 +49,21 @@ l_tspeed_llap = 0
 l_tspeed_clap = 0
 l_q = 0
 
-
 #Main Assetto Corsa function, builds the App Window and the labels associated with it
 def acMain(ac_version):
-    global l_lapcount, l_speed, appWindow, l_tspeed_session, l_tspeed_llap, l_tspeed_clap, tick, l_q, q
+    global l_lapcount, l_speed, appWindow, l_tspeed_session, l_tspeed_llap, l_tspeed_clap, tick, q, l_q
     
     tick=ticker() #set the global variable to be a ticker, see the class below
     appWindow = ac.newApp("Kabal")
+    q.open() #opens connection
+
     l_lapcount = ac.addLabel(appWindow, "Laps: {}".format(0));
     l_speed = ac.addLabel(appWindow, "Speed: {}".format(0));
     l_tspeed_session = ac.addLabel(appWindow, "Session Top Speed: {}".format(0));
     l_tspeed_llap = ac.addLabel(appWindow, "Last Lap Top Speed: {}".format(0));
     l_tspeed_clap = ac.addLabel(appWindow, "Current Lap Top Speed: {}".format(0));
-    q.open();
-    l_q = ac.addLabel(appWindow, "Q test, 4 + 4 = ? {} !".format(q('4+4'))); #Testing kdb access
+    l_q = ac.addLabel(appWindow, "Q-test, 1+1? {}".format(q('1+1'))); #visual test of connection
+    q.query(qconnection.MessageType.SYNC,'samplesession:([] time:();lap:();speed:())') #creates a table
     ac.setSize(appWindow, 250, 200)
 
     ac.setPosition(l_lapcount, 3, 30)
@@ -71,12 +72,11 @@ def acMain(ac_version):
     ac.setPosition(l_tspeed_llap, 3, 100)
     ac.setPosition(l_tspeed_clap, 3, 120)
     ac.setPosition(l_q, 3, 140)
-    q.close();
     return "Kabal"
     
 #Main update function for Assetto Corsa, it runs the enclosed code every DeltaT - I think DeltaT = 1/60 of a second
 def acUpdate(deltaT):
-    global l_lapcount, l_speed, lapcount, targetfile, tick, speed, clap_top_speed, llap_top_speed, tspeed_session
+    global l_lapcount, l_speed, lapcount, targetfile, tick, speed, clap_top_speed, llap_top_speed, tspeed_session, q
 
     if tick.tack(deltaT):  #does not bother CPU with unnecessary updates, basically exits the update function call if time is less than value specified in ticker()
         return
@@ -84,7 +84,8 @@ def acUpdate(deltaT):
     laps = ac.getCarState(0, acsys.CS.LapCount)
     speed = round(ac.getCarState(0, acsys.CS.SpeedMPH),2)
     ac.setText(l_speed,"Speed: {} MPH".format(speed))
-    
+    q.query(qconnection.MessageType.SYNC,'`samplesession insert (.z.P;{l};{s})'.format(l=laps,s=speed))
+
     if speed > clap_top_speed:
         clap_top_speed = speed
         ac.setText(l_tspeed_clap,"Current Lap Top Speed: {} MPH".format(clap_top_speed))
@@ -100,6 +101,9 @@ def acUpdate(deltaT):
         ac.setText(l_lapcount, "Laps: {}".format(lapcount)) #updates the label in the App Window defined on acMain
         ac.setText(l_tspeed_llap, "Last Lap Top Speed: {} MPH".format(llap_top_speed));
         
+def acShutdown():
+    q.query(qconnection.MessageType.SYNC,'`:q/samplesession/ set samplesession')
+    q.close()
 #-----------------------
 # ticker function, to determine update rate
 #--------------------
