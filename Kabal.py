@@ -38,6 +38,8 @@ tick=0
 laps=0
 speed = 0
 fuel = 0
+currentLapTime = 0
+lapInvalidated = 0
 clap_top_speed = 0
 llap_top_speed = 0
 tspeed_session = 0
@@ -80,7 +82,7 @@ def acMain(ac_version):
     l_tspeed_clap = ac.addLabel(appWindow, "Current Lap Top Speed: {}".format(0));
     l_fuel = ac.addLabel(appWindow, "Fuel Level: {} L".format(0));
     l_q = ac.addLabel(appWindow, "Q-test, 1+1? {}".format(q('1+1'))); #visual test of connection
-    q.query(qconnection.MessageType.SYNC,'{}:([] time:();lap:();speedMPH:();fuelL:();psiFL:();psiFR:();psiRL:();psiRR:())'.format(sessionid)) #creates a table
+    q.query(qconnection.MessageType.SYNC,'{}:([] time:();lap:();lapTime_ms:();lapInvalidated:();speedMPH:();fuelL:();psiFL:();psiFR:();psiRL:();psiRR:())'.format(sessionid)) #creates a table
     
     ac.setSize(appWindow, 250, 200)
     ac.setPosition(l_lapcount, 3, 30)
@@ -95,18 +97,20 @@ def acMain(ac_version):
     
 #Main update function for Assetto Corsa, it runs the enclosed code every DeltaT - I think DeltaT = 1/60 of a second
 def acUpdate(deltaT):
-    global l_lapcount, l_speed, lapcount, targetfile, tick, speed, clap_top_speed, llap_top_speed, tspeed_session, q, sessionid, fuel
+    global l_lapcount, l_speed, lapcount, targetfile, tick, speed, clap_top_speed, llap_top_speed, tspeed_session, q, sessionid, fuel, currentLapTime, lapInvalidated
 
     if tick.tack(deltaT):  #does not bother CPU with unnecessary updates, basically exits the update function call if time is less than value specified in ticker()
         return
     
+    currentLapTime = ac.getCarState(0, acsys.CS.LapTime)
+    lapInvalidated = ac.getCarState(0, acsys.CS.LapInvalidated)
     fuel = round(info.physics.fuel,3)
     psiFL,psiFR,psiRL,psiRR = ac.getCarState(0,acsys.CS.DynamicPressure)
     laps = ac.getCarState(0, acsys.CS.LapCount)+1
     speed = round(ac.getCarState(0, acsys.CS.SpeedMPH),2)
     ac.setText(l_speed,"Speed: {} MPH".format(speed))
     ac.setText(l_fuel,"Fuel Level: {} L".format(fuel))
-    q.query(qconnection.MessageType.SYNC,'`{t} insert (.z.P;{l};{s};{f};{pFL};{pFR};{pRL};{pRR})'.format(t=sessionid,l=laps,s=speed,f=fuel,pFL=psiFL,pFR=psiFR,pRL=psiRL,pRR=psiRR))
+    q.query(qconnection.MessageType.SYNC,'`{t} insert (.z.P;{l};{ltms};{linv};{s};{f};{pFL};{pFR};{pRL};{pRR})'.format(t=sessionid,l=laps,ltms=currentLapTime,linv=lapInvalidated,s=speed,f=fuel,pFL=psiFL,pFR=psiFR,pRL=psiRL,pRR=psiRR))
 
     if speed > clap_top_speed:
         clap_top_speed = speed
