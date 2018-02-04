@@ -38,6 +38,8 @@ tick=0
 laps=0
 speed = 0
 fuel = 0
+carInPitLane = 0
+carInPit = 0
 currentLapTime = 0
 lapInvalidated = 0
 clap_top_speed = 0
@@ -48,6 +50,9 @@ l_tspeed_llap = 0
 l_tspeed_clap = 0
 l_q = 0
 l_fuel = 0
+l_session_type = 0
+session_type = 0 # 0 = practice, 1 = quali, 2 = race, updates each graphic step
+session = ['Practice','Qualify','Race','Hotlap','Time Attack','Drift','Drag']
 
 #Session ID
 drivername = ac.getDriverName(0) #info.static.playerName
@@ -68,7 +73,7 @@ except Exception as e:
 
 #Main Assetto Corsa function, builds the App Window and the labels associated with it
 def acMain(ac_version):
-    global l_lapcount, l_speed, appWindow, l_tspeed_session, l_tspeed_llap, l_tspeed_clap, tick, q, l_q, sessionid, l_fuel
+    global l_lapcount, l_speed, appWindow, l_tspeed_session, l_tspeed_llap, l_tspeed_clap, tick, q, l_q, sessionid, l_fuel, session_type, l_session_type
     
 
     tick=ticker() #set the global variable to be a ticker, see the class below
@@ -82,35 +87,42 @@ def acMain(ac_version):
     l_tspeed_clap = ac.addLabel(appWindow, "Current Lap Top Speed: {}".format(0));
     l_fuel = ac.addLabel(appWindow, "Fuel Level: {} L".format(0));
     l_q = ac.addLabel(appWindow, "Q-test, 1+1? {}".format(q('1+1'))); #visual test of connection
-    q.query(qconnection.MessageType.SYNC,'{}:([] time:();lap:();lapTime_ms:();lapInvalidated:();speedMPH:();fuelL:();psiFL:();psiFR:();psiRL:();psiRR:())'.format(sessionid)) #creates a table
+    l_session_type = ac.addLabel(appWindow, "Session Type: {}".format(0)); 
+    q.query(qconnection.MessageType.SYNC,'{}:([] time:();sessionType:();lap:();inPitLane:();inPit:();lapTime_ms:();lapInvalidated:();speedMPH:();fuelL:();psiFL:();psiFR:();psiRL:();psiRR:())'.format(sessionid)) #creates a table
     
     ac.setSize(appWindow, 250, 200)
-    ac.setPosition(l_lapcount, 3, 30)
+    ac.setPosition(l_lapcount, 3, 20)
     ac.setPosition(l_speed, 3, 60)
     ac.setPosition(l_tspeed_session, 3, 80)
     ac.setPosition(l_tspeed_llap, 3, 100)
     ac.setPosition(l_tspeed_clap, 3, 120)
     ac.setPosition(l_fuel, 3, 140)
     ac.setPosition(l_q, 3, 160)
+    ac.setPosition(l_session_type, 3, 180)
 
     return "Kabal"
     
 #Main update function for Assetto Corsa, it runs the enclosed code every DeltaT - I think DeltaT = 1/60 of a second
 def acUpdate(deltaT):
-    global l_lapcount, l_speed, lapcount, targetfile, tick, speed, clap_top_speed, llap_top_speed, tspeed_session, q, sessionid, fuel, currentLapTime, lapInvalidated
+    global l_lapcount, l_speed, lapcount, targetfile, tick, speed, clap_top_speed, llap_top_speed, tspeed_session, q, sessionid, fuel, currentLapTime, lapInvalidated, session, carInPit, carInPitLane
 
     if tick.tack(deltaT):  #does not bother CPU with unnecessary updates, basically exits the update function call if time is less than value specified in ticker()
         return
-    
+    if info.graphics.status != 2: # AC_LIVE = 2, exits update if paused, replay or off
+        return
+
+    session_type = info.graphics.session
     currentLapTime = ac.getCarState(0, acsys.CS.LapTime)
     lapInvalidated = ac.getCarState(0, acsys.CS.LapInvalidated)
+    carInPitLane = ac.isCarInPitlane(0)
+    carInPit = ac.isCarInPit(0)
     fuel = round(info.physics.fuel,3)
     psiFL,psiFR,psiRL,psiRR = ac.getCarState(0,acsys.CS.DynamicPressure)
     laps = ac.getCarState(0, acsys.CS.LapCount)+1
     speed = round(ac.getCarState(0, acsys.CS.SpeedMPH),2)
     ac.setText(l_speed,"Speed: {} MPH".format(speed))
     ac.setText(l_fuel,"Fuel Level: {} L".format(fuel))
-    q.query(qconnection.MessageType.SYNC,'`{t} insert (.z.P;{l};{ltms};{linv};{s};{f};{pFL};{pFR};{pRL};{pRR})'.format(t=sessionid,l=laps,ltms=currentLapTime,linv=lapInvalidated,s=speed,f=fuel,pFL=psiFL,pFR=psiFR,pRL=psiRL,pRR=psiRR))
+    q.query(qconnection.MessageType.SYNC,'`{t} insert (.z.P;{st};{l};{iPL};{iP};{ltms};{linv};{s};{f};{pFL};{pFR};{pRL};{pRR})'.format(st=session_type,t=sessionid,l=laps,iPL=carInPitLane,iP=carInPit,ltms=currentLapTime,linv=lapInvalidated,s=speed,f=fuel,pFL=psiFL,pFR=psiFR,pRL=psiRL,pRR=psiRR))
 
     if speed > clap_top_speed:
         clap_top_speed = speed
@@ -127,9 +139,15 @@ def acUpdate(deltaT):
         ac.setText(l_lapcount, "Lap: {}".format(lapcount)) #updates the label in the App Window defined on acMain
         ac.setText(l_tspeed_llap, "Last Lap Top Speed: {} MPH".format(llap_top_speed));
         
+    if session_type == -1:
+        ac.setText(l_session_type,"Session Type: {}".format('Unknown'))
+    else:
+        ac.setText(l_session_type,"Session Type: {}".format(session[session_type]))
+
+
 def acShutdown():
     global sessionid, q
-    q.query(qconnection.MessageType.SYNC,'`:Sessions/{a}/ set {b}'.format(a=sessionid,b=sessionid))
+    #q.query(qconnection.MessageType.SYNC,'`:Sessions/{a}/ set {b}'.format(a=sessionid,b=sessionid))
     q.close()
 #-----------------------
 # ticker function, to determine update rate
