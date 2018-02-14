@@ -88,7 +88,11 @@ def acMain(ac_version):
     l_fuel = ac.addLabel(appWindow, "Fuel Level: {} L".format(0));
     l_q = ac.addLabel(appWindow, "Q-test, 1+1? {}".format(q('1+1'))); #visual test of connection
     l_session_type = ac.addLabel(appWindow, "Session Type: {}".format(0)); 
-    q.query(qconnection.MessageType.SYNC,'{}:([] time:();sessionType:();lap:();inPitLane:();inPit:();lapTime_ms:();lapInvalidated:();speedMPH:();fuelL:();psiFL:();psiFR:();psiRL:();psiRR:())'.format(sessionid)) #creates a table
+    q.query(qconnection.MessageType.SYNC,'{}:([] time:(); sessionType:(); lap:(); inPitLane:(); inPit:(); lapTime_ms:(); lapInvalidated:(); \
+                                          speedMPH:(); fuelL:(); frontRideHeight:(); rearRideHeight:(); cgRideHeight:(); \
+                                          psiFL:(); psiFR:(); psiRL:(); psiRR:(); tyreCoreTempFL:(); tyreCoreTempFR:(); tyreCoreTempRL:(); tyreCoreTempRR:(); \
+                                          tyreWearFL:(); tyreWearFR:(); tyreWearRL:(); tyreWearRR:(); suspensionTravelfl:(); suspensionTravelfr:(); suspensionTravelrl:(); suspensionTravelrr:(); \
+                                          suspensionLoadflN:(); suspensionLoadfrN:(); suspensionLoadrlN:(); suspensionLoadrrN:())'.format(sessionid)) #creates a table
     
     ac.setSize(appWindow, 250, 200)
     ac.setPosition(l_lapcount, 3, 20)
@@ -117,12 +121,26 @@ def acUpdate(deltaT):
     carInPitLane = ac.isCarInPitlane(0)
     carInPit = ac.isCarInPit(0)
     fuel = round(info.physics.fuel,3)
+    cgH = info.physics.cgHeight
+    fRH, rRH = info.physics.rideHeight
     psiFL,psiFR,psiRL,psiRR = ac.getCarState(0,acsys.CS.DynamicPressure)
+    stfl,stfr,strl,strr = info.physics.suspensionTravel
+    slflN,slfrN,slrlN,slrrN = info.physics.wheelLoad
+    wFL,wFR,wRL,wRR = info.physics.tyreWear
+    ctFL,ctFR,ctRL,ctRR = info.physics.tyreCoreTemperature
     laps = ac.getCarState(0, acsys.CS.LapCount)+1
     speed = round(ac.getCarState(0, acsys.CS.SpeedMPH),2)
     ac.setText(l_speed,"Speed: {} MPH".format(speed))
     ac.setText(l_fuel,"Fuel Level: {} L".format(fuel))
-    q.query(qconnection.MessageType.SYNC,'`{t} insert (.z.P;{st};{l};{iPL};{iP};{ltms};{linv};{s};{f};{pFL};{pFR};{pRL};{pRR})'.format(st=session_type,t=sessionid,l=laps,iPL=carInPitLane,iP=carInPit,ltms=currentLapTime,linv=lapInvalidated,s=speed,f=fuel,pFL=psiFL,pFR=psiFR,pRL=psiRL,pRR=psiRR))
+    q.query(qconnection.MessageType.SYNC,'`{t} insert (.z.P; {st}; {l}; {iPL}; {iP}; {ltms}; {linv}; \
+                                         {s}; {f}; {frh}; {rrh}; {cgrh}; \
+                                         {pFL}; {pFR}; {pRL}; {pRR}; {ctfl}; {ctfr}; {ctrl}; {ctrr}; \
+                                         {wfl}; {wfr}; {wrl}; {wrr}; {sTfl}; {sTfr}; {sTrl}; {sTrr}; \
+                                         {sLfl}; {sLfr}; {sLrl}; {sLrr})'.format(st=session_type, t=sessionid, l=laps, iPL=carInPitLane, iP=carInPit, 
+                                                                        ltms=currentLapTime, linv=lapInvalidated, s=speed, f=fuel, frh = fRH, rrh = rRH, cgrh = cgH, 
+                                                                        pFL=psiFL, pFR=psiFR, pRL=psiRL, pRR=psiRR, ctfl = ctFL, ctfr = ctFR, ctrl = ctRL, ctrr = ctRR, 
+                                                                        wfl = wFL, wfr = wFR, wrl = wRL, wrr = wRR, sTfl=stfl, sTfr=stfr, sTrr=strr, sTrl=strl, 
+                                                                        sLfl=slflN, sLfr=slfrN, sLrr=slrrN, sLrl=slrlN))
 
     if speed > clap_top_speed:
         clap_top_speed = speed
